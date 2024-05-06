@@ -8,12 +8,13 @@
 #include <unistd.h>
 
 // #define DEBUG
-//#define INFO
+#define INFO
 #define INFO1
 //#define WORK_THREAD
 
 void *bkwrk_worker(void *arg)
 {
+
   sigset_t set;
   int sig;
   int s;
@@ -34,6 +35,7 @@ void *bkwrk_worker(void *arg)
   {
     /* wait for signal */
     s = sigwait(&set, &sig);
+    printf("%d\n", s);
     if (s != 0)
       continue;
 
@@ -107,13 +109,17 @@ int bkwrk_create_worker()
     /* TODO: Implement fork version of create worker */
     pid_t pid = fork();
     if (pid == 0) {
-      bkwrk_worker((void *)&i); exit(0);
+      bkwrk_worker(&i);
     }
     else if (pid > 0) {
       wrkid_tid[i] = pid;
-    
+#ifdef INFO1
+      fprintf(stderr, "bkwrk_create_worker got worker %u\n", wrkid_tid[i]);
+#endif
+      usleep(100);
     }
 #endif
+
   }
 
   return 0;
@@ -152,6 +158,11 @@ int bkwrk_dispatch_worker(unsigned int wrkid)
   syscall(SYS_tkill, tid, SIG_DISPATCH);
 #else
   /* TODO: Implement fork version to signal worker process here */
+  pid_t pid = wrkid_tid[wrkid];
 
+  /* Invalid task */
+  if (worker[wrkid].func == NULL) return -1;
+    
+  kill(pid, SIG_DISPATCH);
 #endif
 }
